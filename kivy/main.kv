@@ -1,0 +1,210 @@
+#:kivy 2.3.0
+
+<MainMenu>:
+    FloatLayout:
+        RelativeLayout:
+            id: container
+            size_hint: None, None
+            size: self.parent.size
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            Image:
+                source: "./assets/homepage/jectorpro.png"
+                allow_stretch: True
+                keep_ratio: True
+                size_hint: None, None
+                size: self.parent.size
+                pos: self.parent.pos
+            Button:
+                background_normal: "./assets/homepage/buttons/good_start.png"
+                background_down: "./assets/homepage/buttons/good_start.png"
+
+                size_hint: 0.20, None
+                height: self.width * (72 / 288) 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.72, "y": 0.40}
+
+                on_press: root.manager.current = 'cameraWindow'
+            Button:
+                background_normal: "./assets/homepage/buttons/good_upload.png"
+                background_down: "./assets/homepage/buttons/good_upload.png"
+
+                size_hint: 0.20, None
+                height: self.width * (72 / 288) 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.44, "y": 0.40}
+
+                on_press: root.file_picker()
+
+
+            Button:
+                background_normal: "./assets/homepage/buttons/good_exit.png"
+                background_down: "./assets/homepage/buttons/good_exit.png"
+
+                size_hint: 0.08, None
+                height: self.width * (72 / 107) 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.84, "y": 0.25}
+
+                on_press: app.stop()
+            FloatLayout:
+                id: previewContainer
+                size_hint: None, None
+                size: 200, 200
+                pos_hint: {"x": 0.46, "y": 0.1}
+                canvas.before:
+                    Color:
+                        rgba: 1, 1, 1, 0.1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                Label:
+                    text: "No file uploaded"
+                    size_hint: 1, 1
+                    pos_hint: {"x": 0, "y": 0}
+
+
+<CamWindow>:
+    FloatLayout:
+        Image:
+            source: "./assets/campage/page.png"
+            allow_stretch: True
+            keep_ratio: True
+            size_hint: 1,1
+            size: self.parent.size
+            pos: self.parent.pos
+        RelativeLayout:
+            id: container
+            size_hint: None, None
+            size: self.parent.size
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            CamWidget:
+                id: camwidget
+                size_hint: (1,1)
+                
+                pos_hint: {"center_x": 0.5, "center_y": 0.48}
+
+            Button:
+                background_normal: "./assets/campage/buttons/big.png"
+                background_down: "./assets/campage/buttons/big.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.32, "y": 0.14}
+
+                on_press: camwidget.scale_change(True)
+            Button:
+                background_normal: "./assets/campage/buttons/small.png"
+                background_down: "./assets/campage/buttons/small.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.32, "y": 0.06}
+                on_press: camwidget.scale_change(False)
+            Button:
+                background_normal: "./assets/campage/buttons/up.png"
+                background_down: "./assets/campage/buttons/up.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.14, "y": 0.15}
+                on_press: camwidget.pos_change((0,-camwidget.move_button_amount))
+            Button:
+                background_normal: "./assets/campage/buttons/left.png"
+                background_down: "./assets/campage/buttons/left.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.08, "y": 0.10}
+                on_press: camwidget.pos_change((-camwidget.move_button_amount,0))
+            Button:
+                background_normal: "./assets/campage/buttons/right.png"
+                background_down: "./assets/campage/buttons/right.png"
+
+                size_hint: 0.05, None
+                height: self.width 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.20, "y": 0.10}
+                on_press: camwidget.pos_change((camwidget.move_button_amount,0))
+            Button:
+                background_normal: "./assets/campage/buttons/down.png"
+                background_down: "./assets/campage/buttons/down.png"
+
+                size_hint: 0.05, None
+                height: self.width 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.14, "y": 0.05}
+                on_press: camwidget.pos_change((0,camwidget.move_button_amount))
+            Button:
+                background_normal: "./assets/campage/buttons/clock.png"
+                background_down: "./assets/campage/buttons/clock.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.48, "y": 0.10}
+                on_press: camwidget.angle_change(True)
+            Button:
+                background_normal: "./assets/campage/buttons/counter.png"
+                background_down: "./assets/campage/buttons/counter.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.58, "y": 0.10}
+                on_press: camwidget.angle_change(False)
+            Button:
+                background_normal: "./assets/campage/buttons/alphaplus.png"
+                background_down: "./assets/campage/buttons/alphaplus.png"
+
+                size_hint: 0.05, None
+                height: self.width 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.84, "y": 0.1}
+                on_press: camwidget.alpha_change(True)
+            Button:
+                background_normal: "./assets/campage/buttons/alphaminus.png"
+                background_down: "./assets/campage/buttons/alphaminus.png"
+
+                size_hint: 0.05, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.74, "y": 0.10}
+                on_press: camwidget.alpha_change(False)
+            Button:
+                background_normal: "./assets/campage/buttons/cam.png"
+                background_down: "./assets/campage/buttons/cam.png"
+
+                size_hint: 0.09, None
+                height: self.width
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.80, "y": 0.44}
+                on_press: camwidget.pause()
+            Button:
+                background_normal: "./assets/campage/buttons/menu.png"
+                background_down: "./assets/campage/buttons/menu.png"
+
+                size_hint: 0.20, None
+                height: self.width * (51 / 201) 
+
+                border: 0, 0, 0, 0
+                pos_hint: {"x": 0.5 - self.width/2/self.parent.width, "y": 0.745}
+                on_press: root.manager.current = 'mainMenu'
+    
