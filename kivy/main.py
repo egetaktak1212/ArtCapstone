@@ -10,10 +10,14 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 from kivy.app import Builder
 from kivy.core.window import Window
-from plyer import filechooser
 from kivy.core.image import Image as CoreImage
 from kivy.properties import StringProperty, NumericProperty
 
+from edit_keypoints import EditKeypoints
+
+
+import sys
+print(sys.executable)
 
 Builder.load_file('main.kv')
 
@@ -25,7 +29,7 @@ Window.clearcolor = (35/255, 35/255, 35/255, 1)
 #change text showing whats uploaded
 #all the rescaling shit guhhhh
 
-loaded_ref_image_path = "./mictures/cameronwinterrightsize.png"
+loaded_ref_image_path = "ArtCapstone/keypoints/image/cameron.JPG"
 
 class CamWidget(BoxLayout):
     
@@ -328,10 +332,6 @@ class CamWidget(BoxLayout):
         
         
         
-        
-        
-        
-        
         Clock.schedule_interval(self.update, 1.0 / 60.0)
     
     def stopCamera(self):
@@ -352,7 +352,6 @@ class CamWidget(BoxLayout):
         
 
     def frameFunction(self,frame):
-    
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -434,14 +433,34 @@ class MainMenu(Screen):
         super().__init__(**kwargs)
         
     def file_picker(self):
-        global loaded_ref_image_path
-        picked_paths = filechooser.open_file(title="Select a file", multiple = False, filters = ["*jpg", "*png", "*jpeg"])
-        if picked_paths:
-            # self.label.text = f"Selected file: {picked_paths[0]}"
-            print(f"File selected: {picked_paths[0]}")
-            self.previewImage(picked_paths[0])
-            loaded_ref_image_path = picked_paths[0]
-            
+        #other one didnt work on mac so this is my workaround, camera also deosnt work for me but,,, alas,,,
+        import subprocess
+        script = '''
+        tell application "System Events"
+            activate
+        end tell
+        tell application "System Events"
+            set theFile to choose file with prompt "Select an image" of type {"jpg", "jpeg", "png"}
+            return POSIX path of theFile
+        end tell
+        '''
+        try:
+            result = subprocess.run(
+                ['osascript', '-e', script],
+                capture_output=True,
+                text=True
+            )
+            path = result.stdout.strip()
+            if path:
+                global loaded_ref_image_path
+                loaded_ref_image_path = path
+                editor = self.manager.get_screen('keypointEditor')
+                editor.load_image(path)
+                self.manager.current = 'keypointEditor'
+        except Exception as e:
+            print(f"File picker error: {e}")
+
+
     def previewImage(self, path):
         container = self.ids.previewContainer
         container.clear_widgets()
@@ -482,7 +501,8 @@ class refProjector(App):
         sm = ScreenManager(transition=NoTransition())
         sm.add_widget(MainMenu(name='mainMenu'))
         sm.add_widget(CamWindow(name='cameraWindow'))
-        
+        sm.add_widget(EditKeypoints(name='keypointEditor'))
+
 
         return sm
     
