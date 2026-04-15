@@ -12,6 +12,7 @@ from kivy.app import Builder
 from kivy.core.window import Window
 from kivy.core.image import Image as CoreImage
 from kivy.properties import StringProperty, NumericProperty
+from kivy.uix.button import ButtonBehavior
 
 from edit_keypoints import EditKeypoints
 
@@ -30,6 +31,10 @@ Window.clearcolor = (35/255, 35/255, 35/255, 1)
 #all the rescaling shit guhhhh
 
 loaded_ref_image_path = "ArtCapstone/keypoints/image/cameron.JPG"
+
+#this class gets used later to make preview window clickable
+class ClickableImage(ButtonBehavior, Image):
+    pass
 
 class CamWidget(BoxLayout):
     
@@ -466,23 +471,60 @@ class MainMenu(Screen):
         container.clear_widgets()
 
         
-        preview = Image(source=path)
+        preview = Image(source=App.saved_sketch_path)
         preview.allow_stretch = True
         preview.keep_ratio = True
         
-        preview.size_hint = (None, None)
+        preview.size_hint = (1, 1)
         preview.size = container.size
         preview.pos = container.pos
 
+        preview.bind(on_press=lambda _: self.open_editor_again(App))
+
+
         container.add_widget(preview)
         
+
     def on_enter(self, *args):
         Window.size = (1000, 750)
+
+        app = App.get_running_app()
+        if app.saved_sketch_path:
+            self.show_saved_sketch(app)
+
+
+
+    def show_saved_sketch(self, app):
+
+
+        container = self.ids.previewContainer
+        container.clear_widgets()
+
+        preview = ClickableImage(source=app.saved_image_path)
+
+        preview.size = container.size
+        preview.pos = container.pos
+        preview.allow_stretch = True
+        preview.keep_ratio = True
+        #when preview is clicked it opens the editor back up
+        preview.bind(on_press=lambda instance: self.open_editor_again())
+
+
+        container.add_widget(preview)
+
+    def open_editor_again(self):
+        app = App.get_running_app()
+
+        editor = self.manager.get_screen('keypointEditor')
+
+        editor.load_existing(
+            app.saved_image_path,
+            app.saved_points
+        )
+
+        self.manager.current = 'keypointEditor'
             
-            
-            
-            
-            
+
 
 class CamWindow(Screen):
         
@@ -496,13 +538,16 @@ class CamWindow(Screen):
         self.ids.camwidget.stopCamera()
 
 class refProjector(App):
+    #will contain paths to image and sketch
+    saved_sketch_path = None
+    saved_image_path = None
     
     def build(self):
         sm = ScreenManager(transition=NoTransition())
         sm.add_widget(MainMenu(name='mainMenu'))
         sm.add_widget(CamWindow(name='cameraWindow'))
         sm.add_widget(EditKeypoints(name='keypointEditor'))
-
+    
 
         return sm
     

@@ -6,11 +6,15 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Ellipse, Line, Rectangle
+from kivy.graphics import Color, Ellipse, Line, Rectangle, Fbo, ClearColor, ClearBuffers, Scale, Translate
 from kivy.core.image import Image as CoreImage
 from kivy.clock import mainthread
 from kivy.core.window import Window
 from plyer import filechooser
+from kivy.app import App
+
+
+
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'keypoints'))
@@ -74,6 +78,8 @@ class FaceMeshWidget(Widget):
         self._drag_point = None
         self._drag_group = None
         self._last_touch = None
+
+        self.show_background = True
         self.bind(size=self._on_layout, pos=self._on_layout)
 
     def load(self, image_path, points_dict, connections):
@@ -88,6 +94,51 @@ class FaceMeshWidget(Widget):
         self._drag_group = None
         self._last_touch = None
         self._redraw()
+
+#export the drawing as an image so that we can scale it around with eges stuff
+    def export_as_image(self, filename, include_background=True):
+
+        scale, ox, oy = self._scale_and_offset()
+
+        width = int(self.img_w * scale)
+        height = int(self.img_h * scale)
+
+        fbo = Fbo(size=(width, height))
+
+        with fbo:
+            ClearColor(0, 0, 0, 0)
+            ClearBuffers()
+            Scale(1, -1, 1) #flip vertically
+            # optional background
+            if include_background:
+                Color(1, 1, 1, 1)
+                Rectangle(texture=self.texture, pos=(0, 0), size=(width, height))
+
+            # draw lines + points using current position even if user has moved them
+            Color(1, 0, 0, 1)
+
+            # convert points to export space
+            def convert(ix, iy):
+                x = ix * scale
+                y = (self.img_h - iy) * scale
+                return x, y
+
+            # lines
+            for feature in self.connections:
+                for p1, p2 in feature:
+                    if p1 in self._img_pts and p2 in self._img_pts:
+                        x1, y1 = convert(*self._img_pts[p1])
+                        x2, y2 = convert(*self._img_pts[p2])
+                        Line(points=[x1, y1, x2, y2], width=2)
+
+            # dots
+            r = 4
+            for ix, iy in self._img_pts.values():
+                x, y = convert(ix, iy)
+                Ellipse(pos=(x - r, y - r), size=(r * 2, r * 2))
+
+        fbo.draw()
+        fbo.texture.save(filename)
 
     def _scale_and_offset(self):
         ww, wh = self.width, self.height
@@ -116,11 +167,15 @@ class FaceMeshWidget(Widget):
         with self.canvas:
             # background image
             scale, ox, oy = self._scale_and_offset()
-            Color(1, 1, 1, 1)
-            Rectangle(texture=self.texture,
-                      pos=(ox, oy),
-                      size=(self.img_w * scale, self.img_h * scale))
-            # lines
+
+            if self.show_background:
+                Color(1, 1, 1, 1)
+                Rectangle(texture=self.texture,
+                        pos=(ox, oy),
+                        size=(self.img_w * scale, self.img_h * scale))
+                
+
+
             Color(*self.LINE_COLOR)
             wpts = self._widget_pts()
             for feature in self.connections:
@@ -207,14 +262,18 @@ class EditKeypoints(Screen):
 
         root = BoxLayout(orientation='vertical')
 
-        # toolbar
+        # back button 
         toolbar = BoxLayout(size_hint=(1, None), height=50, spacing=10, padding=8)
-        back_btn = Button(text='← Back', size_hint=(None, 1), width=100)
-        back_btn.bind(on_press=lambda _: setattr(self.manager, 'current', 'mainMenu'))
+        back_btn = Button(text='Save & Exit', size_hint=(None, 1), width=180)
+        back_btn.bind(on_press=self.save_and_go_back) #changed: instead of just leaving call the save and leave function
         self._status = Label(text='Upload an image to begin.',
                              color=(0.7, 0.7, 0.7, 1))
         toolbar.add_widget(back_btn)
         toolbar.add_widget(self._status)
+        #toggle image on/off button
+        toggle_btn = Button(text='Toggle Background', size_hint=(None, 1), width=220)
+        toggle_btn.bind(on_press=self.toggle_background)
+        toolbar.add_widget(toggle_btn)
 
         # the drawing widget
         self._mesh = FaceMeshWidget(size_hint=(1, 1))
@@ -224,9 +283,18 @@ class EditKeypoints(Screen):
         self.add_widget(root)
 
     def load_image(self, path):
-        """Called by MainMenu after the user picks a file."""
-        self._status.text = 'Running CNN, please wait...'
+        #called in mainmenu when you pick file
+        self._image_path = path
+        self._status.text = 'Running CNN, please wait' #since it can take a few seconds
         threading.Thread(target=self._run_cnn, args=(path,), daemon=True).start()
+
+    def load_existing(self, path, points_dict):
+
+        #dont want to re-run CNN every time image is clicked, just save the points
+        self._image_path = path
+        self._status.text = "Loaded saved sketch"
+
+        self._mesh.load(path, points_dict, CONNECTIONS)
 
     def _run_cnn(self, path):
         try:
@@ -237,7 +305,7 @@ class EditKeypoints(Screen):
 
     @mainthread
     def _cnn_done(self, path, points_dict):
-        self._status.text = f'Loaded: {path.split("/")[-1]} — drag dots or lines to adjust'
+        self._status.text = f'Loaded: {path.split("/")[-1]} drag dots or lines to adjust'
         self._mesh.load(path, points_dict, CONNECTIONS)
 
     @mainthread
@@ -246,3 +314,20 @@ class EditKeypoints(Screen):
 
     def get_points(self):
         return self._mesh.get_points()
+    
+    def toggle_background(self, *args):
+        self._mesh.show_background = not self._mesh.show_background
+        self._mesh._redraw()
+
+    def save_and_go_back(self, *args):
+        app = App.get_running_app()
+
+        filename = "saved_sketch.png"
+
+        self._mesh.export_as_image(filename, include_background=False)
+
+        app.saved_sketch_path = filename
+        app.saved_image_path = self._image_path
+        app.saved_points = self._mesh.get_points() #save the CURRENT points
+
+        self.manager.current = 'mainMenu'
