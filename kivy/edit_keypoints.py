@@ -271,7 +271,7 @@ class EditKeypoints(Screen):
         toolbar.add_widget(back_btn)
         toolbar.add_widget(self._status)
         #toggle image on/off button
-        toggle_btn = Button(text='Toggle Background', size_hint=(None, 1), width=220)
+        toggle_btn = Button(text='Toggle Background', size_hint=(None, 1), width=250)
         toggle_btn.bind(on_press=self.toggle_background)
         toolbar.add_widget(toggle_btn)
 
