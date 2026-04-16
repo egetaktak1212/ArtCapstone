@@ -28,6 +28,7 @@ CONNECTIONS = [
     [[10, 11], [11, 12]],
     [[14, 15], [15, 16], [14, 16], [22, 14], [22, 16]],
     [[18, 19], [19, 20]],
+    # [[23, 24],[24, 26],[25, 26],[23, 25]]
 ]
 
 def _dist_sq(ax, ay, bx, by):
@@ -79,6 +80,8 @@ class FaceMeshWidget(Widget):
         self._drag_group = None
         self._last_touch = None
 
+        self._bbox = None
+        
         self.show_background = True
         self.bind(size=self._on_layout, pos=self._on_layout)
 
@@ -160,6 +163,10 @@ class FaceMeshWidget(Widget):
     def _on_layout(self, *_):
         self._redraw()
 
+    def set_bbox(self, bbox):
+        self._bbox = bbox  # expects (bx, by, bw, bh) which gets passed from run_everything()
+        self._redraw()
+
     def _redraw(self):
         self.canvas.clear()
         if self.texture is None:
@@ -170,11 +177,22 @@ class FaceMeshWidget(Widget):
 
             if self.show_background:
                 Color(1, 1, 1, 1)
-                Rectangle(texture=self.texture,
-                        pos=(ox, oy),
-                        size=(self.img_w * scale, self.img_h * scale))
-                
+                Rectangle(texture=self.texture, pos=(ox, oy), size=(self.img_w * scale, self.img_h * scale))
+        
+                            
+            if self._bbox is not None:
+                scale, ox, oy = self._scale_and_offset()
+                bx, by, bw, bh = self._bbox
 
+                #change to kivy coordinates
+                wx = ox + bx * scale
+                wy = oy + (self.img_h - (by + bh)) * scale
+
+                ww = bw * scale
+                wh = bh * scale
+
+                Color(0, 0.5, 1, 1)#blue
+                Line(rectangle=(wx, wy, ww, wh), width=2)
 
             Color(*self.LINE_COLOR)
             wpts = self._widget_pts()
@@ -299,14 +317,15 @@ class EditKeypoints(Screen):
     def _run_cnn(self, path):
         try:
             points_dict, bbox = run_everything(path)
-            self._cnn_done(path, points_dict)
+            self._cnn_done(path, points_dict, bbox)
         except Exception as e:
             self._cnn_error(str(e))
 
     @mainthread
-    def _cnn_done(self, path, points_dict):
+    def _cnn_done(self, path, points_dict, bbox):
         self._status.text = f'Loaded: {path.split("/")[-1]} drag dots or lines to adjust'
         self._mesh.load(path, points_dict, CONNECTIONS)
+        self._mesh.set_bbox(bbox)
 
     @mainthread
     def _cnn_error(self, msg):

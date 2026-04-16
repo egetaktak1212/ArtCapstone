@@ -88,9 +88,6 @@ def predict_and_show(img_path, bbox):
         px = int(bx + rel_x * bw)
         py = int(by + rel_y * bh)
 
-        # Normalized coords relative to full image [0,1]
-        norm_x = px / img_w
-        norm_y = py / img_h
     
         results.append({
             "landmark_id":   i + 1,
@@ -110,7 +107,8 @@ def predict_and_show(img_path, bbox):
     points_dict[21] =(points_dict[21][0], points_dict[21][1] +20)
     #right jaw is too far right
     points_dict[17] =(points_dict[17][0] - 20, points_dict[17][1])
-    return points_dict, bbox
+
+    return points_dict
 
 
 # run on image
@@ -131,6 +129,6 @@ def run_everything(image_path):
 
     coords = predict_and_show(full_path, bbox)
 
-    return coords
+    return coords, bbox
 
-# run_everything("kivy/keypoints/image/cameron.JPG")
+print(run_everything("kivy/keypoints/image/cameron.JPG")[1])
