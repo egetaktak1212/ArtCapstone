@@ -10,12 +10,17 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 from kivy.app import Builder
 from kivy.core.window import Window
-from plyer import filechooser
 from kivy.core.image import Image as CoreImage
 from kivy.properties import StringProperty, NumericProperty
+from kivy.uix.button import ButtonBehavior
+from plyer import filechooser
+from edit_keypoints import EditKeypoints
+import platform
 
+import sys
+print(sys.executable)
 
-Builder.load_file('main.kv')
+Builder.load_file('main2.kv')
 
 Window.resizable = False
 Window.clearcolor = (35/255, 35/255, 35/255, 1)
@@ -25,7 +30,11 @@ Window.clearcolor = (35/255, 35/255, 35/255, 1)
 #change text showing whats uploaded
 #all the rescaling shit guhhhh
 
-loaded_ref_image_path = "./mictures/cameronwinterrightsize.png"
+loaded_ref_image_path = "keypoints\image\cameron.JPG"
+
+#this class gets used later to make preview window clickable
+class ClickableImage(ButtonBehavior, Image):
+    pass
 
 class CamWidget(BoxLayout):
     
@@ -328,10 +337,6 @@ class CamWidget(BoxLayout):
         
         
         
-        
-        
-        
-        
         Clock.schedule_interval(self.update, 1.0 / 60.0)
     
     def stopCamera(self):
@@ -352,7 +357,6 @@ class CamWidget(BoxLayout):
         
 
     def frameFunction(self,frame):
-    
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -434,36 +438,119 @@ class MainMenu(Screen):
         super().__init__(**kwargs)
         
     def file_picker(self):
+        
+        if platform.system() == "Darwin":
+            self.file_picker_mac()
+        elif platform.system() == "Windows":
+            self.file_picker_win()
+
+    def reformat_path(self, path):
+        reformat_path = path[1:]
+
+    def file_picker_win(self):
         global loaded_ref_image_path
         picked_paths = filechooser.open_file(title="Select a file", multiple = False, filters = ["*jpg", "*png", "*jpeg"])
         if picked_paths:
-            # self.label.text = f"Selected file: {picked_paths[0]}"
-            print(f"File selected: {picked_paths[0]}")
-            self.previewImage(picked_paths[0])
-            loaded_ref_image_path = picked_paths[0]
-            
+            path = picked_paths[0]
+            if path:
+                global loaded_ref_image_path
+                loaded_ref_image_path = path
+                #path = path[2:].replace('\\', '/')
+                print(path)
+                editor = self.manager.get_screen('keypointEditor')
+                editor.load_image(path)
+                self.manager.current = 'keypointEditor'
+
+        
+
+    def file_picker_mac(self):
+        #other one didnt work on mac so this is my workaround, camera also deosnt work for me but,,, alas,,,
+        import subprocess
+        script = '''
+        tell application "System Events"
+            activate
+        end tell
+        tell application "System Events"
+            set theFile to choose file with prompt "Select an image" of type {"jpg", "jpeg", "png"}
+            return POSIX path of theFile
+        end tell
+        '''
+        try:
+            result = subprocess.run(
+                ['osascript', '-e', script],
+                capture_output=True,
+                text=True
+            )
+            path = result.stdout.strip()
+            if path:
+                global loaded_ref_image_path
+                loaded_ref_image_path = path
+                editor = self.manager.get_screen('keypointEditor')
+                editor.load_image(path)
+                self.manager.current = 'keypointEditor'
+        except Exception as e:
+            print(f"File picker error: {e}")
+
+
     def previewImage(self, path):
         container = self.ids.previewContainer
         container.clear_widgets()
 
         
-        preview = Image(source=path)
+        preview = Image(source=App.saved_sketch_path)
         preview.allow_stretch = True
         preview.keep_ratio = True
         
-        preview.size_hint = (None, None)
+        preview.size_hint = (1, 1)
         preview.size = container.size
         preview.pos = container.pos
 
+        preview.bind(on_press=lambda _: self.open_editor_again(App))
+
+
         container.add_widget(preview)
         
+
     def on_enter(self, *args):
         Window.size = (1000, 750)
+
+        app = App.get_running_app()
+        if app.saved_sketch_path:
+            self.show_saved_sketch(app)
+
+
+
+    def show_saved_sketch(self, app):
+
+
+        container = self.ids.previewContainer
+        container.clear_widgets()
+
+        preview = ClickableImage(source=app.saved_image_path)
+
+        preview.size = container.size
+        preview.pos = container.pos
+        preview.allow_stretch = True
+        preview.keep_ratio = True
+        #when preview is clicked it opens the editor back up
+        preview.bind(on_press=lambda instance: self.open_editor_again())
+
+
+        container.add_widget(preview)
+
+    def open_editor_again(self):
+        app = App.get_running_app()
+
+        editor = self.manager.get_screen('keypointEditor')
+
+        editor.load_existing(
+            app.saved_image_path,
+            app.saved_points
+        )
+
+        self.manager.current = 'keypointEditor'
             
-            
-            
-            
-            
+
 
 class CamWindow(Screen):
         
@@ -477,12 +564,16 @@ class CamWindow(Screen):
         self.ids.camwidget.stopCamera()
 
 class refProjector(App):
+    #will contain paths to image and sketch
+    saved_sketch_path = None
+    saved_image_path = None
     
     def build(self):
         sm = ScreenManager(transition=NoTransition())
         sm.add_widget(MainMenu(name='mainMenu'))
         sm.add_widget(CamWindow(name='cameraWindow'))
-        
+        sm.add_widget(EditKeypoints(name='keypointEditor'))
+    
 
         return sm
     

@@ -1,70 +1,90 @@
 #:kivy 2.3.0
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import Gradient kivy_gradient.Gradient
 
 <MainMenu>:
     FloatLayout:
-        RelativeLayout:
-            id: container
-            size_hint: None, None
-            size: self.parent.size
-            pos_hint: {"center_x": 0.5, "center_y": 0.5}
-            Image:
-                source: "./assets/homepage/jectorpro.png"
-                allow_stretch: True
-                keep_ratio: True
-                size_hint: None, None
-                size: self.parent.size
-                pos: self.parent.pos
-            Button:
-                background_normal: "./assets/homepage/buttons/good_start.png"
-                background_down: "./assets/homepage/buttons/good_start.png"
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
 
-                size_hint: 0.20, None
-                height: self.width * (72 / 288) 
+        AnchorLayout:
+            anchor_x: "center"
+            anchor_y: "top"
 
-                border: 0, 0, 0, 0
-                pos_hint: {"x": 0.72, "y": 0.40}
+            BoxLayout:
+                size_hint_x: None
+                width: root.width * 0.7
+                orientation: "vertical"
 
-                on_press: root.manager.current = 'cameraWindow'
-            Button:
-                background_normal: "./assets/homepage/buttons/good_upload.png"
-                background_down: "./assets/homepage/buttons/good_upload.png"
-
-                size_hint: 0.20, None
-                height: self.width * (72 / 288) 
-
-                border: 0, 0, 0, 0
-                pos_hint: {"x": 0.44, "y": 0.40}
-
-                on_press: root.file_picker()
-
-
-            Button:
-                background_normal: "./assets/homepage/buttons/good_exit.png"
-                background_down: "./assets/homepage/buttons/good_exit.png"
-
-                size_hint: 0.08, None
-                height: self.width * (72 / 107) 
-
-                border: 0, 0, 0, 0
-                pos_hint: {"x": 0.84, "y": 0.25}
-
-                on_press: app.stop()
-            FloatLayout:
-                id: previewContainer
-                size_hint: None, None
-                size: 200, 200
-                pos_hint: {"x": 0.46, "y": 0.1}
                 canvas.before:
                     Color:
-                        rgba: 1, 1, 1, 0.1
+                        rgba: 0.96, 0.96, 0.86, 1
                     Rectangle:
                         pos: self.pos
                         size: self.size
-                Label:
-                    text: "No file uploaded"
-                    size_hint: 1, 1
-                    pos_hint: {"x": 0, "y": 0}
+                BoxLayout:
+                    size_hint_y: None
+                    height: root.height*0.22
 
+                    canvas.before:
+                        Color:
+                            rgba: 0.77, 0.71, 0.51, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+
+                    FloatLayout:
+
+                        Image:
+                            source: "assets/homepage/JectorLogo.png"
+
+                            size_hint: None, None
+                            height: self.parent.height * 0.9
+                            width: self.parent.width * 0.7
+
+                            pos_hint: {"center_x": 0.4, "center_y": 0.5}
+                            keep_ratio: True
+
+                        Image:
+                            source: "assets/homepage/buttons/powerButton.png"
+                            
+                            size_hint: None, None
+                            height: self.parent.height * 0.8
+                            width: self.parent.width * 0.2
+                            
+
+                            pos_hint: {"center_x": 0.9, "center_y": 0.5}
+                            keep_ratio: True
+                
+                FloatLayout:
+                    Widget:
+                        id: image_frame
+                        size_hint: None, None
+                        height: self.parent.height * 0.25
+                        width: self.parent.width * 0.5
+                        pos_hint: {"center_x": 0.6, "center_y": 0.3}
+
+                        canvas.before:
+                            Color:
+                                rgba: get_color_from_hex("#8C9372")
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+
+                    Image:
+                        id: uploaded_image
+                        source: ""
+                        size_hint: None, None
+                        size: image_frame.size
+                        pos: image_frame.pos
+                        allow_stretch: True
+                        keep_ratio: True
+
+                    
 
 <CamWindow>:
     FloatLayout:

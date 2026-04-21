@@ -301,6 +301,8 @@ class EditKeypoints(Screen):
         self.add_widget(root)
 
     def load_image(self, path):
+        print("A")
+        print(path)
         #called in mainmenu when you pick file
         self._image_path = path
         self._status.text = 'Running CNN, please wait' #since it can take a few seconds
@@ -316,9 +318,12 @@ class EditKeypoints(Screen):
 
     def _run_cnn(self, path):
         try:
+            print("C")
             points_dict, bbox = run_everything(path)
+            print("AAAAAAAA")
             self._cnn_done(path, points_dict, bbox)
         except Exception as e:
+            print("D")
             self._cnn_error(str(e))
 
     @mainthread
