@@ -32,7 +32,7 @@
 
                     canvas.before:
                         Color:
-                            rgba: 0.77, 0.71, 0.51, 1
+                            rgba: get_color_from_hex("#d27400")
                         Rectangle:
                             pos: self.pos
                             size: self.size
@@ -64,9 +64,9 @@
                     Widget:
                         id: image_frame
                         size_hint: None, None
-                        height: self.parent.height * 0.25
-                        width: self.parent.width * 0.5
-                        pos_hint: {"center_x": 0.6, "center_y": 0.3}
+                        height: self.parent.width * 0.4
+                        width: self.height
+                        pos_hint: {"center_x": 0.7, "center_y": 0.6}
 
                         canvas.before:
                             Color:
@@ -75,14 +75,14 @@
                                 pos: self.pos
                                 size: self.size
 
-                    Image:
-                        id: uploaded_image
-                        source: ""
-                        size_hint: None, None
-                        size: image_frame.size
-                        pos: image_frame.pos
-                        allow_stretch: True
-                        keep_ratio: True
+                    #Image:
+                    #    id: uploaded_image
+                    #    source: ""
+                    #    size_hint: None, None
+                    #    size: image_frame.size
+                    #    pos: image_frame.pos
+                    #    allow_stretch: True
+                    #    keep_ratio: True
 
                     
 

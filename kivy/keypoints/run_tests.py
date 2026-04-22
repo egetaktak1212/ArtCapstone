@@ -132,5 +132,3 @@ def run_everything(image_path):
     coords = predict_and_show(full_path, bbox)
 
     return coords, bbox
-
-print(run_everything(r"C:\Users\egeta\Downloads\jermy.jpg")[1])
