@@ -99,14 +99,6 @@ def predict_and_show(img_path, bbox):
 
     points_dict = {r["landmark_id"]: (r["pixel_x"], r["pixel_y"]) for r in results}
     points_dict[22] = (math.floor((points_dict[9][0] + points_dict[10][0])/2), math.floor((points_dict[3][1] + points_dict[9][1])/2))
-   #18, 19, 20 are mouth points, always are a little too high
-    points_dict[18] = (points_dict[18][0], points_dict[18][1]+20 )
-    points_dict[19] = (points_dict[19][0], points_dict[19][1]+20 )
-    points_dict[20] =(points_dict[20][0], points_dict[20][1]+20 )
-    #chin is too high
-    points_dict[21] =(points_dict[21][0], points_dict[21][1] +20)
-    #right jaw is too far right
-    points_dict[17] =(points_dict[17][0] - 20, points_dict[17][1])
 
     return points_dict
 
@@ -117,7 +109,7 @@ def run_everything(image_path):
     from cnn_training_2 import load_data
 
 
-    data     = load_data(DB_PATH)
+    data = load_data(DB_PATH)
 
     full_path = image_path
     bbox = isolate_face(full_path)
