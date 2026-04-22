@@ -81,7 +81,7 @@ def predict_and_show(img_path, bbox):
 
     results = []
     for i in range(NUM_LANDMARKS):
-        rel_x = float(pred[i*2])        # [0,1] relative to crop
+        rel_x = float(pred[i*2])# [0,1] relative to crop
         rel_y = float(pred[i*2+1])
 
         # Pixel coords in the full image

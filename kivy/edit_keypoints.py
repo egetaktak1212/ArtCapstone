@@ -12,6 +12,7 @@ from kivy.clock import mainthread
 from kivy.core.window import Window
 from plyer import filechooser
 from kivy.app import App
+from PIL import Image as PILImage
 
 
 
@@ -116,35 +117,27 @@ class FaceMeshWidget(Widget):
         self._redraw()
 
 #export the drawing as an image so that we can scale it around with eges stuff
-    def export_as_image(self, filename, include_background=False):
-        from kivy.graphics import PushMatrix, PopMatrix
+    def export_as_image(self, filename):
 
         scale, ox, oy = self._scale_and_offset()
         width  = int(self.img_w * scale)
         height = int(self.img_h * scale)
 
-        fbo = Fbo(size=(width, height))
-        fbo.bind()
-        fbo.clear_buffer()
-        fbo.release()
+        fbo = Fbo(size=(width, height), with_stencilbuffer=False)
+
 
         with fbo:
             ClearColor(0, 0, 0, 0)
             ClearBuffers()
 
-            if include_background and self.texture is not None:
-                Color(1, 1, 1, 1)
-                Rectangle(texture=self.texture, pos=(0, 0), size=(width, height))
-
             # convert image coords to fbo coords
-            # fbo (like kivy)origin is bottom-left, image origin is top-left, so flip y
+            # origin is bottom-left, image origin is top-left, so flip y
             def convert(ix, iy):
                 x = ix * scale
                 y = (self.img_h - iy) * scale  # flip y
                 return x, y
 
             Color(1, 0, 0, 1)
-
             # lines
             for feature in self.connections:
                 for p1, p2 in feature:
@@ -160,8 +153,69 @@ class FaceMeshWidget(Widget):
                 Ellipse(pos=(x - r, y - r), size=(r * 2, r * 2))
 
         fbo.draw()
-        fbo.texture.save(filename, flipped=True)
-        print(f"Saved to {filename}")
+
+        pixels = fbo.texture.pixels
+        img = PILImage.frombytes("RGBA", (width, height), pixels)
+        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
+        img.save(filename)
+        # print(f"Sketch path: {filename}")
+
+    def export_guidelines_as_image(self, filename):
+        scale, ox, oy = self._scale_and_offset()
+        width  = int(self.img_w * scale)
+        height = int(self.img_h * scale)
+
+        fbo = Fbo(size=(width, height), with_stencilbuffer=False)
+
+        with fbo:
+            ClearColor(0, 0, 0, 0)
+            ClearBuffers()
+
+            def convert(ix, iy):
+                x = ix * scale
+                y = (self.img_h - iy) * scale
+                return x, y
+
+            # bbox
+            if self._bbox is not None:
+                bx, by, bw, bh = self._bbox
+                fx = bx * scale
+                fy = (self.img_h - (by + bh)) * scale
+                Color(0, 0.5, 1, 1)
+                Line(rectangle=(fx, fy, bw * scale, bh * scale), width=2)
+
+            # guidelines
+            Color(0, 0, 1, 1)
+            wpts_img = self._img_pts 
+
+            img_left   = 0
+            img_right  = width
+            img_top    = height
+            img_bottom = 0
+
+            for pair in GUIDELINES:
+                p1, p2 = pair
+                if p1 not in wpts_img or p2 not in wpts_img:
+                    continue
+                x1, y1 = convert(*wpts_img[p1])
+                x2, y2 = convert(*wpts_img[p2])
+
+                if abs(x2 - x1) < abs(y2 - y1):
+                    avg_x = (x1 + x2) / 2
+                    Line(points=[avg_x, img_bottom, avg_x, img_top],
+                        width=1.2, dash_offset=5, dash_length=8)
+                else:
+                    avg_y = (y1 + y2) / 2
+                    Line(points=[img_left, avg_y, img_right, avg_y],
+                        width=1.2, dash_offset=5, dash_length=8)
+
+        fbo.draw()
+        #bruhhhhhhhhhhhhhhh
+        pixels = fbo.texture.pixels
+        img = PILImage.frombytes("RGBA", (width, height), pixels)
+        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
+        img.save(filename)
+        # print(f"Guidelines path: {filename}")
 
     def _scale_and_offset(self):
         ww, wh = self.width, self.height
@@ -199,20 +253,7 @@ class FaceMeshWidget(Widget):
                 Color(1, 1, 1, 1)
                 Rectangle(texture=self.texture, pos=(ox, oy), size=(self.img_w * scale, self.img_h * scale))
                 
-                
-            # if self._bbox is not None:
-            #     scale,ox, oy = self._scale_and_offset()
-            #     bx, by, bw, bh = self._bbox
-
-            #     #change to kivy coordinates
-            #     wx = ox + bx * scale
-            #     wy = oy + (self.img_h - (by + bh)) * scale
-
-            #     ww = bw * scale
-            #     wh = bh * scale
-
-            #     Color(0, 0.5, 1, 1) #blue
-            #     Line(rectangle=(wx, wy, ww, wh), width=2)
+            
             
             wpts = self._widget_pts()
 
@@ -436,11 +477,14 @@ class EditKeypoints(Screen):
         app = App.get_running_app()
 
         filename = "saved_sketch.png"
+        guide_filename = 'saved_guidelines.png'
 
-        self._mesh.export_as_image(filename, include_background=False)
-
+        self._mesh.export_as_image(filename)
+        self._mesh.export_guidelines_as_image(guide_filename)
+        
         app.saved_sketch_path = filename
         app.saved_image_path = self._image_path
         app.saved_points = self._mesh.get_points() #save the CURRENT points
+
 
         self.manager.current = 'mainMenu'
