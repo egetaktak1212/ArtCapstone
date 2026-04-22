@@ -1,6 +1,11 @@
 #:kivy 2.3.0
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 
+<ImgButton@ButtonBehavior+Image>:
+    allow_stretch: False
+    keep_ratio: True
+
+
 <MainMenu>:
     FloatLayout:
         canvas.before:
@@ -64,28 +69,42 @@
                 
                 BoxLayout:
                     padding: dp(20)
-                    spacing: dp(20)
+                    spacing: dp(7)
 
                     BoxLayout:
                         orientation: "vertical"
                         size_hint_x: 0.4
-                        spacing: dp(20)
+                        spacing: dp(5)
+                        size_hint_y: None
+                        height: self.minimum_height
+                        pos_hint: {"top": 0.9}
 
-                        Button:
-                            text: "open camera"
-                        Button:
-                            text: "edit features"
-                        Button:
-                            text: "upload file"
+                        ImgButton:
+                            source: "./assets/homepage/buttons/opencamera.png"
+                            on_press: root.manager.current = 'cameraWindow'
+                            size_hint_y: None
+                            height: self.width * (415 / 927)
+
+                        ImgButton:
+                            source: "./assets/homepage/buttons/uploadfile.png"
+                            on_press: root.file_picker()
+                            size_hint_y: None
+                            height: self.width * (415 / 924)
+
+                        ImgButton:
+                            source: "./assets/homepage/buttons/editfeatures.png"
+                            on_press: root.open_editor_again()
+                            size_hint_y: None
+                            height: self.width * (416 / 923)
+                            
 
                     AnchorLayout:
-                        anchor_x: "right"
+                        anchor_x: "center"
                         anchor_y: "center"
 
-                        Widget:
+                        BoxLayout:
                             size_hint: None, None
-                            height: self.parent.height * 0.8
-                            width: self.height
+                            size: min(self.parent.width, self.parent.height) * 0.8, min(self.parent.width, self.parent.height) * 0.8
 
                             canvas.before:
                                 Color:
@@ -93,6 +112,12 @@
                                 Rectangle:
                                     pos: self.pos
                                     size: self.size
+
+                            BoxLayout:
+                                id: previewContainer
+                                size_hint: 1, 1
+
+                                
                 
                 BoxLayout:
                     size_hint_y: 0.2
@@ -109,14 +134,12 @@
                         anchor_x: "left"
                         anchor_y: "center"
 
-                        padding: 0, 0, dp(15), 0
 
                         Image:
                             source: "assets/homepage/diskdrive.png"
 
                             size_hint: None, None
-                            height: self.parent.height * 0.85
-                            width: self.height * 2
+                            width: self.parent.parent.width * 0.8
 
                             keep_ratio: True
                             allow_stretch: True

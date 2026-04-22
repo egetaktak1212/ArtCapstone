@@ -11,6 +11,7 @@ from kivy.uix.screenmanager import ScreenManager, NoTransition
 from kivy.app import Builder
 from kivy.core.window import Window
 from kivy.core.image import Image as CoreImage
+from kivy.uix.image import Image
 from kivy.properties import StringProperty, NumericProperty
 from kivy.uix.button import ButtonBehavior
 from plyer import filechooser
@@ -491,24 +492,6 @@ class MainMenu(Screen):
         except Exception as e:
             print(f"File picker error: {e}")
 
-
-    def previewImage(self, path):
-        container = self.ids.previewContainer
-        container.clear_widgets()
-
-        
-        preview = Image(source=App.saved_sketch_path)
-        preview.allow_stretch = True
-        preview.keep_ratio = True
-        
-        preview.size_hint = (1, 1)
-        preview.size = container.size
-        preview.pos = container.pos
-
-        preview.bind(on_press=lambda _: self.open_editor_again(App))
-
-
-        container.add_widget(preview)
         
 
     def on_enter(self, *args):
@@ -522,21 +505,19 @@ class MainMenu(Screen):
 
     def show_saved_sketch(self, app):
 
-
         container = self.ids.previewContainer
         container.clear_widgets()
 
         preview = ClickableImage(source=app.saved_image_path)
 
-        preview.size = container.size
-        preview.pos = container.pos
-        preview.allow_stretch = True
-        preview.keep_ratio = True
-        #when preview is clicked it opens the editor back up
+        preview.size_hint = (1, 1)
+        preview.fit_mode="contain"
+
+
         preview.bind(on_press=lambda instance: self.open_editor_again())
 
-
         container.add_widget(preview)
+
 
     def open_editor_again(self):
         app = App.get_running_app()
