@@ -492,7 +492,7 @@ class MainMenu(Screen):
         except Exception as e:
             print(f"File picker error: {e}")
 
-        
+     
 
     def on_enter(self, *args):
         Window.size = (1000, 750)
@@ -536,8 +536,8 @@ class MainMenu(Screen):
 class CamWindow(Screen):
         
     def on_enter(self, *args):
-        img = CoreImage("./assets/campage/page.png")
-        Window.size = img.size
+        # img = CoreImage("./assets/campage/page.png")
+        # Window.size = img.size
         Clock.schedule_once(lambda dt: self.ids.camwidget.startCamera(), 1)
 
     
