@@ -13,6 +13,7 @@ from kivy.core.window import Window
 from plyer import filechooser
 from kivy.app import App
 from PIL import Image as PILImage
+import os
 
 
 
@@ -157,8 +158,10 @@ class FaceMeshWidget(Widget):
         pixels = fbo.texture.pixels
         img = PILImage.frombytes("RGBA", (width, height), pixels)
         img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
+        # import os
+        # print("cwd:", os.getcwd())
+        # print("saving to:", filename)
         img.save(filename)
-        # print(f"Sketch path: {filename}")
 
     def export_guidelines_as_image(self, filename):
         scale, ox, oy = self._scale_and_offset()
@@ -476,9 +479,10 @@ class EditKeypoints(Screen):
     def save_and_go_back(self, *args):
         app = App.get_running_app()
 
-        filename = "saved_sketch.png"
-        guide_filename = 'saved_guidelines.png'
-
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        filename = os.path.join(base_dir, "saved_sketch.png")
+        guide_filename = os.path.join(base_dir, "saved_guidelines.png")
+        print("image exported")
         self._mesh.export_as_image(filename)
         self._mesh.export_guidelines_as_image(guide_filename)
         
