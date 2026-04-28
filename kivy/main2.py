@@ -297,7 +297,11 @@ class CamWidget(BoxLayout):
         self.last_frame = None
         self.last_H = None
         #setup cam
-        self.capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if platform.system() == "Darwin":
+            self.capture = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+        elif platform.system() == "Windows":
+            self.capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 

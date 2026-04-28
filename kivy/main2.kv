@@ -246,6 +246,13 @@
                         size_hint_y: None
                         height: dp(60)
 
+                        canvas.before:
+                            Color: 
+                                rgba: get_color_from_hex("#FFFFFF")
+                            Line:
+                                width: 4
+                                rectangle: self.x, self.y, self.width, self.height
+
                         ImgButton:
                             source: "./assets/campage/buttons/big.png"
                             on_press: camwidget.scale_change(True)
