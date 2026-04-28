@@ -12,9 +12,11 @@ import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from isolate_face import isolate_face
 
-MODEL_PATH    = "kivy/keypoints/best_landmark_model.pth"
-IMAGES_PATH   = "kivy/keypoints/image/cameron.JPG"
-DB_PATH       = "kivy/keypoints/aflw.sqlite"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "best_landmark_model.pth")
+DB_PATH    = os.path.join(BASE_DIR, "aflw.sqlite")
+IMAGES_PATH = os.path.join(BASE_DIR, "image", "cameron.JPG")
 IMG_SIZE      = 128
 NUM_LANDMARKS = 21
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -122,5 +124,3 @@ def run_everything(image_path):
     coords = predict_and_show(full_path, bbox)
 
     return coords, bbox
-
-print(run_everything("kivy/keypoints/image/cameron.JPG")[1])
