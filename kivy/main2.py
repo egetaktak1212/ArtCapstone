@@ -18,8 +18,9 @@ from plyer import filechooser
 from edit_keypoints import EditKeypoints
 import platform
 import os
-
+from kivy.uix.behaviors import ToggleButtonBehavior
 import sys
+
 print(sys.executable)
 
 Builder.load_file('main2.kv')
@@ -37,6 +38,16 @@ loaded_ref_image_path = "keypoints\image\cameron.JPG"
 #this class gets used later to make preview window clickable
 class ClickableImage(ButtonBehavior, Image):
     pass
+
+class ImgToggleButton(ToggleButtonBehavior, Image):
+    source_on = ""
+    source_off = ""
+
+    def on_state(self, widget, value):
+        if value == "down":
+            self.source = self.source_on
+        else:
+            self.source = self.source_off
 
 class CamWidget(BoxLayout):
     
@@ -296,14 +307,19 @@ class CamWidget(BoxLayout):
         
         return result
 
-    def hideShit(self, i):
+    def hideShit(self, i, btn):
         if i == 0:
             self.ogshow = not self.ogshow
+            btn.state = "down" if self.ogshow else "normal"
         elif i == 1:
             self.guideshow = not self.guideshow
+            btn.state = "down" if self.guideshow else "normal"
         elif i == 2:
             self.sketchshow = not self.sketchshow
+            btn.state = "down" if self.sketchshow else "normal"
+
         self.activeref = self.changeOverlay(self.guideshow, self.sketchshow, self.ogshow)
+        self.apply_transforms()
 
     def apply_transforms(self):
         #follow bible
@@ -333,11 +349,6 @@ class CamWidget(BoxLayout):
             
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-        self.showimage = True
-        self.showsketch = True
-        self.showguidelines = True
-
         
         #these are the dirs and images for th esketch and guidelines
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -352,10 +363,8 @@ class CamWidget(BoxLayout):
         self.sketch = cv2.resize(self.sketch, (width, height), interpolation=cv2.INTER_LINEAR)
         self.guideline = cv2.resize(self.guideline, (width, height), interpolation=cv2.INTER_LINEAR)
 
-        self.ogshow = True
-        self.guideshow = True
-        self.sketchshow = True
-        self.activeref = self.changeOverlay(True, True, True)
+        
+        self.activeref = self.changeOverlay(self.guideshow, self.sketchshow, self.ogshow)
 
         #big shot here. creating the og scaled_ref and setting params for scale, angle etc
         
@@ -399,6 +408,8 @@ class CamWidget(BoxLayout):
             self.capture.release()
             self.capture = None
         self.last_frame = None
+        
+        
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
@@ -407,7 +418,9 @@ class CamWidget(BoxLayout):
         self.add_widget(self.camera)
         self.move_button_amount = 50
         self.capture = None
-        
+        self.ogshow = True
+        self.guideshow = True
+        self.sketchshow = True
         
 
     def frameFunction(self,frame):

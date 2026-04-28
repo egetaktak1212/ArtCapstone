@@ -292,18 +292,23 @@
                         size_hint_y: None
                         height: dp(60)
 
-                        ImgButton:
-                            source: "./assets/campage/buttons/left.png"
-                            height: dp(40)
-                            on_press: camwidget.hideShit(0)
-                        ImgButton:
-                            source: "./assets/campage/buttons/down.png"
-                            height: dp(40)
-                            on_press: camwidget.hideShit(1)
-                        ImgButton:
-                            source: "./assets/campage/buttons/right.png"
-                            height: dp(40)
-                            on_press: camwidget.hideShit(2)
+                        ImgToggleButton:
+                            source_off: "./assets/campage/buttons/refoff.png"
+                            source_on: "./assets/campage/buttons/refon.png"
+                            source: self.source_on
+                            on_press: camwidget.hideShit(0, self)
+
+                        ImgToggleButton:
+                            source_off: "./assets/campage/buttons/guideoff.png"
+                            source_on: "./assets/campage/buttons/guideon.png"
+                            source: self.source_on
+                            on_press: camwidget.hideShit(1, self)
+
+                        ImgToggleButton:
+                            source_off: "./assets/campage/buttons/sketchoff.png"
+                            source_on: "./assets/campage/buttons/sketchon.png"
+                            source: self.source_on
+                            on_press: camwidget.hideShit(2, self)
                     
                     BoxLayout:
                         spacing: dp(5)
