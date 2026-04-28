@@ -12,6 +12,7 @@ from kivy.clock import mainthread
 from kivy.core.window import Window
 from plyer import filechooser
 from kivy.app import App
+from PIL import Image as PILImage
 
 
 
@@ -30,6 +31,17 @@ CONNECTIONS = [
     [[18, 19], [19, 20]],
     # [[23, 24],[24, 26],[25, 26],[23, 25]]
 ]
+
+GUIDELINES = [
+    [21, 22], #vertical line
+    [8,11], # across eyes
+    [14,16], #across nose
+    [18,20] #across mouth
+]
+_connection_ids = {p for feature in CONNECTIONS for pair in feature for p in pair}
+
+# only block movement for guideline points that aren't also sketch points (21 and 22)
+GUIDELINE_POINT_IDS = {p for pair in GUIDELINES for p in pair} - _connection_ids
 
 def _dist_sq(ax, ay, bx, by):
     return (ax - bx) ** 2 + (ay - by) ** 2
@@ -71,6 +83,7 @@ class FaceMeshWidget(Widget):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # empty state until load() is called
+
         self.texture     = None
         self.img_w       = 1
         self.img_h       = 1
@@ -82,7 +95,12 @@ class FaceMeshWidget(Widget):
 
         self._bbox = None
         
+
         self.show_background = True
+        self.show_guidelines = True
+        self.show_sketch     = True
+        self.show_bbox = True
+        self.guideline_color = (0, 0, 1, 0.7)
         self.bind(size=self._on_layout, pos=self._on_layout)
 
     def load(self, image_path, points_dict, connections):
@@ -99,33 +117,27 @@ class FaceMeshWidget(Widget):
         self._redraw()
 
 #export the drawing as an image so that we can scale it around with eges stuff
-    def export_as_image(self, filename, include_background=True):
+    def export_as_image(self, filename):
 
         scale, ox, oy = self._scale_and_offset()
-
-        width = int(self.img_w * scale)
+        width  = int(self.img_w * scale)
         height = int(self.img_h * scale)
 
-        fbo = Fbo(size=(width, height))
+        fbo = Fbo(size=(width, height), with_stencilbuffer=False)
+
 
         with fbo:
             ClearColor(0, 0, 0, 0)
             ClearBuffers()
-            Scale(1, -1, 1) #flip vertically
-            # optional background
-            if include_background:
-                Color(1, 1, 1, 1)
-                Rectangle(texture=self.texture, pos=(0, 0), size=(width, height))
 
-            # draw lines + points using current position even if user has moved them
-            Color(1, 0, 0, 1)
-
-            # convert points to export space
+            # convert image coords to fbo coords
+            # origin is bottom-left, image origin is top-left, so flip y
             def convert(ix, iy):
                 x = ix * scale
-                y = (self.img_h - iy) * scale
+                y = (self.img_h - iy) * scale  # flip y
                 return x, y
 
+            Color(1, 0, 0, 1)
             # lines
             for feature in self.connections:
                 for p1, p2 in feature:
@@ -135,13 +147,75 @@ class FaceMeshWidget(Widget):
                         Line(points=[x1, y1, x2, y2], width=2)
 
             # dots
-            r = 4
+            r = self.DOT_RADIUS
             for ix, iy in self._img_pts.values():
                 x, y = convert(ix, iy)
                 Ellipse(pos=(x - r, y - r), size=(r * 2, r * 2))
 
         fbo.draw()
-        fbo.texture.save(filename)
+
+        pixels = fbo.texture.pixels
+        img = PILImage.frombytes("RGBA", (width, height), pixels)
+        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
+        img.save(filename)
+        # print(f"Sketch path: {filename}")
+
+    def export_guidelines_as_image(self, filename):
+        scale, ox, oy = self._scale_and_offset()
+        width  = int(self.img_w * scale)
+        height = int(self.img_h * scale)
+
+        fbo = Fbo(size=(width, height), with_stencilbuffer=False)
+
+        with fbo:
+            ClearColor(0, 0, 0, 0)
+            ClearBuffers()
+
+            def convert(ix, iy):
+                x = ix * scale
+                y = (self.img_h - iy) * scale
+                return x, y
+
+            # bbox
+            if self._bbox is not None:
+                bx, by, bw, bh = self._bbox
+                fx = bx * scale
+                fy = (self.img_h - (by + bh)) * scale
+                Color(0, 0.5, 1, 1)
+                Line(rectangle=(fx, fy, bw * scale, bh * scale), width=2)
+
+            # guidelines
+            Color(0, 0, 1, 1)
+            wpts_img = self._img_pts 
+
+            img_left   = 0
+            img_right  = width
+            img_top    = height
+            img_bottom = 0
+
+            for pair in GUIDELINES:
+                p1, p2 = pair
+                if p1 not in wpts_img or p2 not in wpts_img:
+                    continue
+                x1, y1 = convert(*wpts_img[p1])
+                x2, y2 = convert(*wpts_img[p2])
+
+                if abs(x2 - x1) < abs(y2 - y1):
+                    avg_x = (x1 + x2) / 2
+                    Line(points=[avg_x, img_bottom, avg_x, img_top],
+                        width=1.2, dash_offset=5, dash_length=8)
+                else:
+                    avg_y = (y1 + y2) / 2
+                    Line(points=[img_left, avg_y, img_right, avg_y],
+                        width=1.2, dash_offset=5, dash_length=8)
+
+        fbo.draw()
+        #bruhhhhhhhhhhhhhhh
+        pixels = fbo.texture.pixels
+        img = PILImage.frombytes("RGBA", (width, height), pixels)
+        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
+        img.save(filename)
+        # print(f"Guidelines path: {filename}")
 
     def _scale_and_offset(self):
         ww, wh = self.width, self.height
@@ -178,35 +252,63 @@ class FaceMeshWidget(Widget):
             if self.show_background:
                 Color(1, 1, 1, 1)
                 Rectangle(texture=self.texture, pos=(ox, oy), size=(self.img_w * scale, self.img_h * scale))
-        
-                            
-            if self._bbox is not None:
-                scale, ox, oy = self._scale_and_offset()
-                bx, by, bw, bh = self._bbox
+                
+            
+            
+            wpts = self._widget_pts()
 
-                #change to kivy coordinates
+            if self.show_guidelines:
+                self._draw_guidelines(wpts)
+            if self._bbox is not None and self.show_bbox:
+                bx, by, bw, bh = self._bbox
                 wx = ox + bx * scale
                 wy = oy + (self.img_h - (by + bh)) * scale
-
-                ww = bw * scale
-                wh = bh * scale
-
-                Color(0, 0.5, 1, 1)#blue
-                Line(rectangle=(wx, wy, ww, wh), width=2)
+                Color(0, 0.5, 1, 1)
+                Line(rectangle=(wx, wy, bw * scale, bh * scale), width=2)
 
             Color(*self.LINE_COLOR)
-            wpts = self._widget_pts()
-            for feature in self.connections:
-                for p1, p2 in feature:
-                    if p1 in wpts and p2 in wpts:
-                        x1, y1 = wpts[p1]
-                        x2, y2 = wpts[p2]
-                        Line(points=[x1, y1, x2, y2], width=self.LINE_WIDTH)
-            # dots
-            Color(*self.DOT_COLOR)
-            r = self.DOT_RADIUS
-            for wx, wy in wpts.values():
-                Ellipse(pos=(wx - r, wy - r), size=(r * 2, r * 2))
+
+
+        
+            # red lines and dots
+            if self.show_sketch:
+                Color(*self.LINE_COLOR)
+                for feature in self.connections:
+                    for p1, p2 in feature:
+                        if p1 in wpts and p2 in wpts:
+                            x1, y1 = wpts[p1]
+                            x2, y2 = wpts[p2]
+                            Line(points=[x1, y1, x2, y2], width=self.LINE_WIDTH)
+                Color(*self.DOT_COLOR)
+                r = self.DOT_RADIUS
+                for wx, wy in wpts.values():
+                    Ellipse(pos=(wx - r, wy - r), size=(r * 2, r * 2))
+
+                
+
+    def _draw_guidelines(self, wpts):
+        Color(*self.guideline_color) 
+        scale, ox, oy = self._scale_and_offset()
+        img_left= ox
+        img_right= ox + self.img_w * scale
+        img_top = oy + self.img_h * scale
+        img_bottom = oy
+
+        for pair in GUIDELINES:
+            p1, p2 = pair
+            if p1 not in wpts or p2 not in wpts:
+                continue
+            x1, y1 = wpts[p1]
+            x2, y2 = wpts[p2]
+
+            # vertical guideline, use average x of both points, extend top to bottom
+            if abs(x2 - x1) < abs(y2 - y1):
+                avg_x = (x1 + x2) / 2
+                Line(points=[avg_x, img_bottom, avg_x, img_top], width=1.2, dash_offset=5, dash_length=8)
+            # horizontal guideline, use average y of both points, extend left to right
+            else:
+                avg_y = (y1 + y2) / 2
+                Line(points=[img_left, avg_y, img_right, avg_y], width=1.2, dash_offset=5, dash_length=8)
 
     # interact
     def on_touch_down(self, touch):
@@ -217,6 +319,8 @@ class FaceMeshWidget(Widget):
         wpts = self._widget_pts()
 
         for k, (wx, wy) in wpts.items():
+            if k in GUIDELINE_POINT_IDS:
+                continue  
             if _dist_sq(mx, my, wx, wy) < self.HIT_RADIUS ** 2:
                 self._drag_point = k
                 self._drag_group = None
@@ -267,6 +371,7 @@ class FaceMeshWidget(Widget):
         self._drag_point = None
         self._drag_group = None
         self._last_touch = None
+  
         return True
 
     def get_points(self):
@@ -278,19 +383,33 @@ class EditKeypoints(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self._show_bg = True
+        self._show_guidelines = True
+        self._show_sketch = True
+
         root = BoxLayout(orientation='vertical')
 
-        # back button 
-        toolbar = BoxLayout(size_hint=(1, None), height=50, spacing=10, padding=8)
-        back_btn = Button(text='Save & Exit', size_hint=(None, 1), width=180)
+        # buttons
+        toolbar = BoxLayout(size_hint=(1, None), height=70, spacing=50, padding=10)
+
+        back_btn = Button(text='Save & Exit', size_hint=(None, 1), width=180) #for save and exit
+        guide_btn = Button(text='Hide Guidelines', size_hint=(None, 1), width=240)#for hiding guidelines
+        sketch_btn = Button(text='Hide Sketch', size_hint=(None, 1), width=200)#for hiding sketch
+        toggle_btn = Button(text='Hide Image', size_hint=(None, 1), width=200)#toggle image on/off button
+
         back_btn.bind(on_press=self.save_and_go_back) #changed: instead of just leaving call the save and leave function
+        toggle_btn.bind(on_press=lambda _: self._toggle('bg', toggle_btn))
+        guide_btn.bind(on_press=lambda _: self._toggle('guidelines', guide_btn))
+        sketch_btn.bind(on_press=lambda _: self._toggle('sketch', sketch_btn))
+
         self._status = Label(text='Upload an image to begin.',
                              color=(0.7, 0.7, 0.7, 1))
         toolbar.add_widget(back_btn)
         toolbar.add_widget(self._status)
-        #toggle image on/off button
-        toggle_btn = Button(text='Toggle Background', size_hint=(None, 1), width=250)
-        toggle_btn.bind(on_press=self.toggle_background)
+        toolbar.add_widget(guide_btn)
+        toolbar.add_widget(sketch_btn)
+        
+        
         toolbar.add_widget(toggle_btn)
 
         # the drawing widget
@@ -339,19 +458,38 @@ class EditKeypoints(Screen):
     def get_points(self):
         return self._mesh.get_points()
     
-    def toggle_background(self, *args):
-        self._mesh.show_background = not self._mesh.show_background
+    def _toggle(self, target, btn):
+        if target == 'bg':
+            self._show_bg = not self._show_bg
+            self._mesh.show_background = self._show_bg
+            btn.text = 'Show Image' if not self._show_bg else 'Hide Image'
+        elif target == 'guidelines':
+            self._show_guidelines = not self._show_guidelines
+            self._mesh.show_guidelines = self._show_guidelines
+            self._mesh.show_bbox = self._show_guidelines
+            btn.text = 'Show Guidelines' if not self._show_guidelines else 'Hide Guidelines'
+        elif target == 'sketch':
+            self._show_sketch = not self._show_sketch
+            self._mesh.show_sketch = self._show_sketch
+            btn.text = 'Show Sketch' if not self._show_sketch else 'Hide Sketch'
         self._mesh._redraw()
+    
+    # def toggle_background(self, *args):
+    #     self._mesh.show_background = not self._mesh.show_background
+    #     self._mesh._redraw()
 
     def save_and_go_back(self, *args):
         app = App.get_running_app()
 
         filename = "saved_sketch.png"
+        guide_filename = 'saved_guidelines.png'
 
-        self._mesh.export_as_image(filename, include_background=False)
-
+        self._mesh.export_as_image(filename)
+        self._mesh.export_guidelines_as_image(guide_filename)
+        
         app.saved_sketch_path = filename
         app.saved_image_path = self._image_path
         app.saved_points = self._mesh.get_points() #save the CURRENT points
+
 
         self.manager.current = 'mainMenu'
