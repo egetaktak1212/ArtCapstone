@@ -17,6 +17,7 @@ from kivy.uix.button import ButtonBehavior
 from plyer import filechooser
 from edit_keypoints import EditKeypoints
 import platform
+import os
 
 import sys
 print(sys.executable)
@@ -276,12 +277,40 @@ class CamWidget(BoxLayout):
         
         return scaled_ref, initial_scale, center
     
+    def changeOverlay(self, guidelines, sketch, og):
+        frame = np.zeros_like(self.originalref)
+
+        if (og):
+            frame = self.originalref
+        if sketch:
+            frame = self.masking(self.sketch, frame)
+        if guidelines:
+            frame = self.masking(self.guideline, frame)
+        return frame
+
+    def masking(self, fg, bg):
+        
+        mask = np.any(fg != [0, 0, 0], axis=-1)
+        result = bg.copy()
+        result[mask] = fg[mask]
+        
+        return result
+
+    def hideShit(self, i):
+        if i == 0:
+            self.ogshow = not self.ogshow
+        elif i == 1:
+            self.guideshow = not self.guideshow
+        elif i == 2:
+            self.sketchshow = not self.sketchshow
+        self.activeref = self.changeOverlay(self.guideshow, self.sketchshow, self.ogshow)
+
     def apply_transforms(self):
         #follow bible
         
         # for every transform
         # take the original. scale it with the factor
-        first_scale = self.scale_image(self.originalref, self.scale)
+        first_scale = self.scale_image(self.activeref, self.scale)
         # diagonalize
         second_diagonalize = self.turn_into_big_box_using_diagonals(first_scale)
         # rotate with rotation factor
@@ -305,8 +334,28 @@ class CamWidget(BoxLayout):
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-        #speaks for itself
+        self.showimage = True
+        self.showsketch = True
+        self.showguidelines = True
+
+        
+        #these are the dirs and images for th esketch and guidelines
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.sketch = cv2.imread(os.path.join(base_dir, "saved_sketch.png"))
+        self.guideline = cv2.imread(os.path.join(base_dir, "saved_guidelines.png"))
+
+        #the active ref will be the original ref overlayed w whatever you want
         self.originalref = cv2.imread(loaded_ref_image_path)
+
+        #resize cuz for some reason mias outputs are bigger
+        height, width = self.originalref.shape[:2]
+        self.sketch = cv2.resize(self.sketch, (width, height), interpolation=cv2.INTER_LINEAR)
+        self.guideline = cv2.resize(self.guideline, (width, height), interpolation=cv2.INTER_LINEAR)
+
+        self.ogshow = True
+        self.guideshow = True
+        self.sketchshow = True
+        self.activeref = self.changeOverlay(True, True, True)
 
         #big shot here. creating the og scaled_ref and setting params for scale, angle etc
         
@@ -508,11 +557,11 @@ class MainMenu(Screen):
 
 
     def show_saved_sketch(self, app):
-
         container = self.ids.previewContainer
         container.clear_widgets()
-
-        preview = ClickableImage(source=app.saved_image_path)
+        path = self.makePreview(app)
+        preview = ClickableImage(source=path)
+        preview.reload()
 
         preview.size_hint = (1, 1)
         preview.fit_mode="contain"
@@ -521,6 +570,35 @@ class MainMenu(Screen):
         preview.bind(on_press=lambda instance: self.open_editor_again())
 
         container.add_widget(preview)
+
+    def makePreview(self, app):
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        sketch = cv2.imread(os.path.join(base_dir, "saved_sketch.png"))
+        guideline = cv2.imread(os.path.join(base_dir, "saved_guidelines.png"))
+        originalref = cv2.imread(app.saved_image_path)
+        height, width = originalref.shape[:2]
+        sketch = cv2.resize(sketch, (width, height), interpolation=cv2.INTER_LINEAR)
+        guideline = cv2.resize(guideline, (width, height), interpolation=cv2.INTER_LINEAR)
+
+        final = self.masking(sketch, originalref)
+        final = self.masking(guideline, final)
+        
+        final_path = os.path.join(base_dir, "preview.png")
+
+        cv2.imwrite(final_path, final)
+        return final_path
+
+
+
+    def masking(self, fg, bg):
+        
+        mask = np.any(fg != [0, 0, 0], axis=-1)
+        result = bg.copy()
+        result[mask] = fg[mask]
+        
+        return result
+
 
 
     def open_editor_again(self):

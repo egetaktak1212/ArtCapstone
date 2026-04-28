@@ -292,6 +292,25 @@
                             source: "./assets/campage/buttons/alphaminus.png"
                             on_press: camwidget.alpha_change(False)
                             height: dp(40)
+                    
+                    BoxLayout:
+                        spacing: dp(5)
+                        size_hint_y: None
+                        height: dp(60)
+
+                        ImgButton:
+                            source: "./assets/campage/buttons/left.png"
+                            height: dp(40)
+                            on_press: camwidget.hideShit(0)
+                        ImgButton:
+                            source: "./assets/campage/buttons/down.png"
+                            height: dp(40)
+                            on_press: camwidget.hideShit(1)
+                        ImgButton:
+                            source: "./assets/campage/buttons/right.png"
+                            height: dp(40)
+                            on_press: camwidget.hideShit(2)
+                    
                     BoxLayout:
                         spacing: dp(5)
                         size_hint_y: None
