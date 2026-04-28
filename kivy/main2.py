@@ -491,8 +491,15 @@ class MainMenu(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
+    def cam_opener(self):
+        app = App.get_running_app()
+        if (app.did_we_upload):
+            self.manager.current = 'cameraWindow'
+
     def file_picker(self):
-        
+        app = App.get_running_app()
+        app.did_we_upload = True
+
         if platform.system() == "Darwin":
             self.file_picker_mac()
         elif platform.system() == "Windows":
@@ -603,15 +610,15 @@ class MainMenu(Screen):
 
     def open_editor_again(self):
         app = App.get_running_app()
+        if (app.did_we_upload):
+            editor = self.manager.get_screen('keypointEditor')
 
-        editor = self.manager.get_screen('keypointEditor')
+            editor.load_existing(
+                app.saved_image_path,
+                app.saved_points
+            )
 
-        editor.load_existing(
-            app.saved_image_path,
-            app.saved_points
-        )
-
-        self.manager.current = 'keypointEditor'
+            self.manager.current = 'keypointEditor'
             
 
 
@@ -630,6 +637,7 @@ class refProjector(App):
     #will contain paths to image and sketch
     saved_sketch_path = None
     saved_image_path = None
+    did_we_upload = False
     
     def build(self):
         sm = ScreenManager(transition=NoTransition())

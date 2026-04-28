@@ -81,7 +81,7 @@
 
                         ImgButton:
                             source: "./assets/homepage/buttons/opencamera.png"
-                            on_press: root.manager.current = 'cameraWindow'
+                            on_press: root.cam_opener()
                             size_hint_y: None
                             height: self.width * (415 / 927)
 
@@ -214,9 +214,10 @@
                             pos: self.pos
                             size: self.size
                     BoxLayout:
-                        spacing: dp(5)
+                        spacing: dp(10)
                         size_hint_y: None
                         height: dp(60)
+                        
                         Widget:
                         ImgButton:
                             source: "./assets/campage/buttons/up.png"
@@ -224,7 +225,7 @@
                             height: dp(40)   
                         Widget:
                     BoxLayout:
-                        spacing: dp(5)
+                        spacing: dp(10)
                         size_hint_y: None
                         height: dp(60)
 
@@ -245,13 +246,6 @@
                         spacing: dp(5)
                         size_hint_y: None
                         height: dp(60)
-
-                        canvas.before:
-                            Color: 
-                                rgba: get_color_from_hex("#FFFFFF")
-                            Line:
-                                width: 4
-                                rectangle: self.x, self.y, self.width, self.height
 
                         ImgButton:
                             source: "./assets/campage/buttons/big.png"
