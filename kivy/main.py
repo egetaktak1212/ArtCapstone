@@ -13,9 +13,9 @@ from kivy.core.window import Window
 from kivy.core.image import Image as CoreImage
 from kivy.properties import StringProperty, NumericProperty
 from kivy.uix.button import ButtonBehavior
-
+from plyer import filechooser
 from edit_keypoints import EditKeypoints
-
+import platform
 
 import sys
 print(sys.executable)
@@ -30,7 +30,7 @@ Window.clearcolor = (35/255, 35/255, 35/255, 1)
 #change text showing whats uploaded
 #all the rescaling shit guhhhh
 
-loaded_ref_image_path = "ArtCapstone/keypoints/image/cameron.JPG"
+loaded_ref_image_path = "keypoints\image\cameron.JPG"
 
 #this class gets used later to make preview window clickable
 class ClickableImage(ButtonBehavior, Image):
@@ -438,6 +438,32 @@ class MainMenu(Screen):
         super().__init__(**kwargs)
         
     def file_picker(self):
+        
+        if platform.system() == "Darwin":
+            self.file_picker_mac()
+        elif platform.system() == "Windows":
+            self.file_picker_win()
+
+    def reformat_path(self, path):
+        reformat_path = path[1:]
+
+    def file_picker_win(self):
+        global loaded_ref_image_path
+        picked_paths = filechooser.open_file(title="Select a file", multiple = False, filters = ["*jpg", "*png", "*jpeg"])
+        if picked_paths:
+            path = picked_paths[0]
+            if path:
+                global loaded_ref_image_path
+                loaded_ref_image_path = path
+                #path = path[2:].replace('\\', '/')
+                print(path)
+                editor = self.manager.get_screen('keypointEditor')
+                editor.load_image(path)
+                self.manager.current = 'keypointEditor'
+
+        
+
+    def file_picker_mac(self):
         #other one didnt work on mac so this is my workaround, camera also deosnt work for me but,,, alas,,,
         import subprocess
         script = '''
