@@ -320,7 +320,6 @@
                             on_press: root.manager.current = 'mainMenu'
                             height: dp(40)
 
-
                     Widget:
 
                 AnchorLayout:
@@ -338,7 +337,7 @@
 
                         canvas.before:
                             Color:
-                                rgba: 1, 1, 1, 1
+                                rgba: get_color_from_hex("#485338")
                             Rectangle:
                                 pos: self.pos
                                 size: self.size

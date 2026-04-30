@@ -414,13 +414,14 @@ class CamWidget(BoxLayout):
         super().__init__(**kwargs)
         
         self.orientation = "vertical"
-        self.camera = Image()
+        self.camera = Image(fit_mode="contain")
         self.add_widget(self.camera)
         self.move_button_amount = 50
         self.capture = None
         self.ogshow = True
         self.guideshow = True
         self.sketchshow = True
+        self.size_hint = (1, 1)
         
 
     def frameFunction(self,frame):
